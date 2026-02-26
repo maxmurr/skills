@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with red-green-refactor loop. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, asks for test-first development, mentions outside-in TDD, mockist TDD, London-school TDD, acceptance TDD, or double-loop TDD.
+description: Guides agent through test-driven development using red-green-refactor. Use when user mentions TDD, red-green-refactor, test-first development, outside-in TDD, mockist TDD, London-school TDD, acceptance TDD, or double-loop TDD. Do not use for writing E2E/Playwright tests, configuring test runners or frameworks, adding tests without TDD methodology, or general testing advice.
 ---
 
 # Test-Driven Development
@@ -13,7 +13,7 @@ description: Test-driven development with red-green-refactor loop. Use when user
 
 **Bad tests** are coupled to implementation. They mock internal collaborators, test private methods, or verify through external means (like querying a database directly instead of using the interface). The warning sign: your test breaks when you refactor, but behavior hasn't changed. If you rename an internal function and tests fail, those tests were testing implementation, not behavior.
 
-See [tests.md](tests.md) for examples, [mocking.md](mocking.md) for mocking guidelines, [test-tiers.md](test-tiers.md) for organizing unit vs component tests, and [component-testing.md](component-testing.md) for UI testing patterns.
+Read [references/tests.md](references/tests.md) for test naming rules and examples when writing tests. Read [references/mocking.md](references/mocking.md) for when and how to mock. Read [references/test-tiers.md](references/test-tiers.md) for organizing unit vs component tests. Read [references/component-testing.md](references/component-testing.md) for UI component testing patterns.
 
 ## Task Analysis
 
@@ -22,7 +22,7 @@ Two legitimate TDD styles. Pick one per feature; don't mix mid-feature. **Active
 ### Step 1 — Check for explicit request
 
 If user said "classical", "Detroit", or "inside-out" → **Classical**. Done.
-If user said "outside-in", "London", "mockist", or "double-loop" → **[Outside-in](outside-in.md)**. Done.
+If user said "outside-in", "London", "mockist", or "double-loop" → **[Outside-in](references/outside-in.md)**. Done.
 
 Otherwise, proceed to Step 2.
 
@@ -33,7 +33,7 @@ Otherwise, proceed to Step 2.
 - [ ] **Collaborators** — existing with stable interfaces, or new ones to discover?
 - [ ] **Task language** — user-visible behavior ("user can...") or internal logic ("calculate", "transform")?
 
-**[Outside-in](outside-in.md)** when ANY:
+**[Outside-in](references/outside-in.md)** when ANY:
 - Entry point is UI / route / controller
 - Spans 2+ layers with new collaborators to discover
 - Describes user journey or end-to-end flow
@@ -49,15 +49,7 @@ Otherwise, proceed to Step 2.
 
 ### Step 3 — State classification
 
-Before proceeding, tell the user:
-
-```
-Approach: [Classical / Outside-in]
-Entry point: [file or layer]
-Reasoning: [one sentence]
-```
-
-Wait for user confirmation before writing any tests.
+Before proceeding, copy the template from [assets/classification-template.md](assets/classification-template.md), fill it in, and present it to the user. Wait for user confirmation before writing any tests.
 
 ## Anti-Pattern: Horizontal Slices
 
@@ -92,8 +84,8 @@ Using the entry point and scope identified in [Task Analysis](#task-analysis):
 
 - [ ] Confirm with user what interface changes are needed
 - [ ] Confirm with user which behaviors to test (prioritize)
-- [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
-- [ ] Design interfaces for [testability](interface-design.md)
+- [ ] Identify opportunities for [deep modules](references/deep-modules.md) (small interface, deep implementation)
+- [ ] Design interfaces for [testability](references/interface-design.md)
 - [ ] List the behaviors to test (not implementation steps)
 - [ ] Get user approval on the plan
 
@@ -130,7 +122,7 @@ Rules:
 
 ### 4. Refactor
 
-After all tests pass, look for [refactor candidates](refactoring.md):
+After all tests pass, read [references/refactoring.md](references/refactoring.md) and look for refactor candidates:
 
 - [ ] Extract duplication
 - [ ] Deepen modules (move complexity behind simple interfaces)
@@ -152,6 +144,10 @@ After all tests pass, look for [refactor candidates](refactoring.md):
 
 ---
 
-For outside-in TDD workflow, see [outside-in.md](outside-in.md).
-For organizing test tiers, see [test-tiers.md](test-tiers.md).
-For UI component testing patterns, see [component-testing.md](component-testing.md).
+When using outside-in TDD, read [references/outside-in.md](references/outside-in.md) for the full double-loop workflow.
+When deciding test file placement, read [references/test-tiers.md](references/test-tiers.md) for unit vs component tier rules.
+When testing UI components, read [references/component-testing.md](references/component-testing.md) for mount helpers and boundary faking patterns.
+
+## Validation
+
+To validate changes to this skill, run the 4-stage process: discovery validation (test frontmatter triggers), logic validation (simulate execution), edge case testing (attack the logic), and architecture refinement (enforce progressive disclosure). See [skills best practices](https://github.com/mgechev/skills-best-practices) for prompts.

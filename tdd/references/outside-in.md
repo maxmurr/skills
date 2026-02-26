@@ -4,7 +4,7 @@ Also called London-school, mockist, or double-loop TDD.
 
 ## When to Use
 
-See decision table in [SKILL.md](SKILL.md#choosing-your-approach). Short version: use when you need to **discover interfaces between collaborators** by driving from the outermost behavior inward.
+See decision table in [SKILL.md](../SKILL.md#choosing-your-approach). Short version: use when you need to **discover interfaces between collaborators** by driving from the outermost behavior inward.
 
 ## Philosophy
 
@@ -47,7 +47,7 @@ The acceptance test stays red until all inner layers are real. That's the double
 
 ### 1. Planning
 
-Using the entry point and scope identified in [Task Analysis](SKILL.md#task-analysis), plus:
+Using the entry point and scope identified in [Task Analysis](../SKILL.md#task-analysis), plus:
 
 - [ ] Identify the layers/boundaries you expect to discover
 - [ ] Start from the outermost user-facing behavior
