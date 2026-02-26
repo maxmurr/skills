@@ -15,21 +15,49 @@ description: Test-driven development with red-green-refactor loop. Use when user
 
 See [tests.md](tests.md) for examples, [mocking.md](mocking.md) for mocking guidelines, [test-tiers.md](test-tiers.md) for organizing unit vs component tests, and [component-testing.md](component-testing.md) for UI testing patterns.
 
-## Choosing Your Approach
+## Task Analysis
 
-Two legitimate TDD styles. Pick one per feature; don't mix mid-feature.
+Two legitimate TDD styles. Pick one per feature; don't mix mid-feature. **Actively classify the task before writing any tests.**
 
-| Signal | Approach | Why |
-|--------|----------|-----|
-| Domain logic, algorithms, data transformations | **Classical (inside-out)** | Behavior is the contract; internals should be free to change |
-| Orchestration layers, UI-to-service wiring, controller logic | **[Outside-in](outside-in.md)** | Discover interfaces between layers by driving from user intent |
-| Integrating with existing deep modules | **Classical** | Modules already have stable interfaces; test through them |
-| Greenfield feature spanning multiple not-yet-existing components | **[Outside-in](outside-in.md)** | Double-loop discovers what components you need |
-| User says "classical", "Detroit", "inside-out" | **Classical** | Explicit request |
-| User says "outside-in", "London", "mockist", "double-loop" | **[Outside-in](outside-in.md)** | Explicit request |
-| Unclear | **Classical** | Safer default; fewer coupling risks |
+### Step 1 — Check for explicit request
 
-**Default is classical.** Outside-in requires discipline to replace mocks with real implementations; classical has no such cleanup tax.
+If user said "classical", "Detroit", or "inside-out" → **Classical**. Done.
+If user said "outside-in", "London", "mockist", or "double-loop" → **[Outside-in](outside-in.md)**. Done.
+
+Otherwise, proceed to Step 2.
+
+### Step 2 — Examine task and codebase
+
+- [ ] **Entry point** — where does the change enter? (UI component, route, API handler, domain service, utility)
+- [ ] **Scope** — single module or crosses multiple layers?
+- [ ] **Collaborators** — existing with stable interfaces, or new ones to discover?
+- [ ] **Task language** — user-visible behavior ("user can...") or internal logic ("calculate", "transform")?
+
+**[Outside-in](outside-in.md)** when ANY:
+- Entry point is UI / route / controller
+- Spans 2+ layers with new collaborators to discover
+- Describes user journey or end-to-end flow
+- Greenfield multi-component feature
+
+**Classical** when:
+- Single module with existing interface
+- Algorithms, data transforms, domain rules
+- Integrating with existing deep modules
+- No outside-in signals
+
+**Default: classical** when ambiguous. Outside-in requires discipline to replace mocks with real implementations; classical has no such cleanup tax.
+
+### Step 3 — State classification
+
+Before proceeding, tell the user:
+
+```
+Approach: [Classical / Outside-in]
+Entry point: [file or layer]
+Reasoning: [one sentence]
+```
+
+Wait for user confirmation before writing any tests.
 
 ## Anti-Pattern: Horizontal Slices
 
@@ -60,7 +88,7 @@ RIGHT (vertical):
 
 ### 1. Planning
 
-Before writing any code:
+Using the entry point and scope identified in [Task Analysis](#task-analysis):
 
 - [ ] Confirm with user what interface changes are needed
 - [ ] Confirm with user which behaviors to test (prioritize)

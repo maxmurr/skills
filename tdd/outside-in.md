@@ -47,7 +47,7 @@ The acceptance test stays red until all inner layers are real. That's the double
 
 ### 1. Planning
 
-Same as classical, plus:
+Using the entry point and scope identified in [Task Analysis](SKILL.md#task-analysis), plus:
 
 - [ ] Identify the layers/boundaries you expect to discover
 - [ ] Start from the outermost user-facing behavior
