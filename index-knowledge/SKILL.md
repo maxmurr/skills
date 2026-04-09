@@ -1,11 +1,11 @@
 ---
 name: index-knowledge
-description: Generate hierarchical CLAUDE.md knowledge base for a codebase. Creates root + complexity-scored subdirectory documentation. Use when user wants to index, document, or generate knowledge files for a project.
+description: Generate hierarchical AGENTS.md knowledge base for a codebase (root + complexity-scored subdirs), then align CLAUDE.md symlinks so Cursor/Claude see the same content. Use when user runs /index-knowledge, asks to regenerate AGENTS.md hierarchy, or refresh codebase knowledge docs.
 ---
 
 # index-knowledge
 
-Generate hierarchical CLAUDE.md files. Root + complexity-scored subdirectories.
+Generate hierarchical AGENTS.md files. Root + complexity-scored subdirectories.
 
 ## Usage
 
@@ -22,23 +22,24 @@ Default: Update mode (modify existing + create new where warranted)
 
 1. **Discovery + Analysis** (concurrent)
    - Launch parallel explore agents (multiple Task calls in one message)
-   - Main session: bash structure + LSP codemap + read existing CLAUDE.md
-2. **Score & Decide** - Determine CLAUDE.md locations from merged findings
+   - Main session: bash structure + LSP codemap + read existing AGENTS.md
+2. **Score & Decide** - Determine AGENTS.md locations from merged findings
 3. **Generate** - Root first, then subdirs in parallel
 4. **Review** - Deduplicate, trim, validate
+5. **Symlinks** - `CLAUDE.md` → `AGENTS.md` per directory (see Phase 5)
 
 <critical>
 **TodoWrite ALL phases. Mark in_progress → completed in real-time.**
-
+  
 ```
 TodoWrite([
   { id: "discovery", content: "Fire explore agents + LSP codemap + read existing", status: "pending", priority: "high" },
   { id: "scoring", content: "Score directories, determine locations", status: "pending", priority: "high" },
-  { id: "generate", content: "Generate CLAUDE.md files (root + subdirs)", status: "pending", priority: "high" },
-  { id: "review", content: "Deduplicate, validate, trim", status: "pending", priority: "medium" }
+  { id: "generate", content: "Generate AGENTS.md files (root + subdirs)", status: "pending", priority: "high" },
+  { id: "review", content: "Deduplicate, validate, trim", status: "pending", priority: "medium" },
+  { id: "symlinks", content: "CLAUDE.md → AGENTS.md symlinks for each KB dir", status: "pending", priority: "medium" }
 ])
 ```
-
 </critical>
 
 ---
@@ -94,14 +95,14 @@ Task(
 <dynamic-agents>
 **DYNAMIC AGENT SPAWNING**: After bash analysis, spawn ADDITIONAL explore agents based on project scale:
 
-| Factor                       | Threshold | Additional Agents          |
-| ---------------------------- | --------- | -------------------------- |
-| **Total files**              | >100      | +1 per 100 files           |
-| **Total lines**              | >10k      | +1 per 10k lines           |
-| **Directory depth**          | ≥4        | +2 for deep exploration    |
+| Factor | Threshold | Additional Agents |
+|--------|-----------|-------------------|
+| **Total files** | >100 | +1 per 100 files |
+| **Total lines** | >10k | +1 per 10k lines |
+| **Directory depth** | ≥4 | +2 for deep exploration |
 | **Large files (>500 lines)** | >10 files | +1 for complexity hotspots |
-| **Monorepo**                 | detected  | +1 per package/workspace   |
-| **Multiple languages**       | >1        | +1 per language            |
+| **Monorepo** | detected | +1 per package/workspace |
+| **Multiple languages** | >1 | +1 per language |
 
 ```bash
 # Measure project scale first
@@ -112,7 +113,6 @@ max_depth=$(find . -type d -not -path '*/node_modules/*' -not -path '*/.git/*' |
 ```
 
 Example spawning (all in ONE message for parallel execution):
-
 ```
 // 500 files, 50k lines, depth 6, 15 large files → spawn additional agents
 Task(
@@ -134,7 +134,6 @@ Task(
 )
 // ... more based on calculation
 ```
-
 </dynamic-agents>
 
 ### Main Session: Concurrent Analysis
@@ -142,7 +141,6 @@ Task(
 **While Task agents execute**, main session does:
 
 #### 1. Bash Structural Analysis
-
 ```bash
 # Directory depth + file counts
 find . -type d -not -path '*/\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | awk -F/ '{print NF-1}' | sort -n | uniq -c
@@ -153,23 +151,21 @@ find . -type f -not -path '*/\.*' -not -path '*/node_modules/*' | sed 's|/[^/]*$
 # Code concentration by extension
 find . -type f \( -name "*.py" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.go" -o -name "*.rs" \) -not -path '*/node_modules/*' | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -20
 
-# Existing CLAUDE.md
-find . -type f -name "CLAUDE.md" -not -path '*/node_modules/*' 2>/dev/null
+# Existing AGENTS.md / CLAUDE.md
+find . -type f \( -name "AGENTS.md" -o -name "CLAUDE.md" \) -not -path '*/node_modules/*' 2>/dev/null
 ```
 
-#### 2. Read Existing CLAUDE.md
-
+#### 2. Read Existing AGENTS.md
 ```
 For each existing file found:
   Read(filePath=file)
   Extract: key insights, conventions, anti-patterns
-  Store in EXISTING_CLAUDE map
+  Store in EXISTING_AGENTS map
 ```
 
 If `--create-new`: Read all existing first (preserve context) → then delete all → regenerate.
 
 #### 3. LSP Codemap (if available)
-
 ```
 lsp_servers()  # Check availability
 
@@ -198,30 +194,29 @@ lsp_find_references(filePath="...", line=X, character=Y)
 
 ### Scoring Matrix
 
-| Factor               | Weight | High Threshold           | Source  |
-| -------------------- | ------ | ------------------------ | ------- |
-| File count           | 3x     | >20                      | bash    |
-| Subdir count         | 2x     | >5                       | bash    |
-| Code ratio           | 2x     | >70%                     | bash    |
-| Unique patterns      | 1x     | Has own config           | explore |
-| Module boundary      | 2x     | Has index.ts/**init**.py | bash    |
-| Symbol density       | 2x     | >30 symbols              | LSP     |
-| Export count         | 2x     | >10 exports              | LSP     |
-| Reference centrality | 3x     | >20 refs                 | LSP     |
+| Factor | Weight | High Threshold | Source |
+|--------|--------|----------------|--------|
+| File count | 3x | >20 | bash |
+| Subdir count | 2x | >5 | bash |
+| Code ratio | 2x | >70% | bash |
+| Unique patterns | 1x | Has own config | explore |
+| Module boundary | 2x | Has index.ts/__init__.py | bash |
+| Symbol density | 2x | >30 symbols | LSP |
+| Export count | 2x | >10 exports | LSP |
+| Reference centrality | 3x | >20 refs | LSP |
 
 ### Decision Rules
 
-| Score        | Action                    |
-| ------------ | ------------------------- |
-| **Root (.)** | ALWAYS create             |
-| **>15**      | Create CLAUDE.md          |
-| **8-15**     | Create if distinct domain |
-| **<8**       | Skip (parent covers)      |
+| Score | Action |
+|-------|--------|
+| **Root (.)** | ALWAYS create |
+| **>15** | Create AGENTS.md |
+| **8-15** | Create if distinct domain |
+| **<8** | Skip (parent covers) |
 
 ### Output
-
 ```
-CLAUDE_LOCATIONS = [
+AGENTS_LOCATIONS = [
   { path: ".", type: "root" },
   { path: "src/hooks", score: 18, reason: "high complexity" },
   { path: "src/api", score: 12, reason: "distinct domain" }
@@ -232,11 +227,11 @@ CLAUDE_LOCATIONS = [
 
 ---
 
-## Phase 3: Generate CLAUDE.md
+## Phase 3: Generate AGENTS.md
 
 **Mark "generate" as in_progress.**
 
-### Root CLAUDE.md (Full Treatment)
+### Root AGENTS.md (Full Treatment)
 
 ```markdown
 # PROJECT KNOWLEDGE BASE
@@ -246,81 +241,72 @@ CLAUDE_LOCATIONS = [
 **Branch:** {BRANCH}
 
 ## OVERVIEW
-
 {1-2 sentences: what + core stack}
 
 ## STRUCTURE
-
 \`\`\`
 {root}/
-├── {dir}/ # {non-obvious purpose only}
+├── {dir}/    # {non-obvious purpose only}
 └── {entry}
 \`\`\`
 
 ## WHERE TO LOOK
-
 | Task | Location | Notes |
-| ---- | -------- | ----- |
+|------|----------|-------|
 
 ## CODE MAP
-
 {From LSP - skip if unavailable or project <10 files}
 
 | Symbol | Type | Location | Refs | Role |
 
 ## CONVENTIONS
-
 {ONLY deviations from standard}
 
 ## ANTI-PATTERNS (THIS PROJECT)
-
 {Explicitly forbidden here}
 
 ## UNIQUE STYLES
-
 {Project-specific}
 
 ## COMMANDS
-
 \`\`\`bash
 {dev/test/build}
 \`\`\`
 
 ## NOTES
-
 {Gotchas}
 ```
 
 **Quality gates**: 50-150 lines, no generic advice, no obvious info.
 
-### Subdirectory CLAUDE.md (Parallel)
+### Subdirectory AGENTS.md (Parallel)
 
 Launch general agents for each location in ONE message (parallel execution):
 
 ```
 // All in single message = parallel
 Task(
-  description="CLAUDE.md for src/hooks",
+  description="AGENTS.md for src/hooks",
   subagent_type="general",
-  prompt="Generate CLAUDE.md for: src/hooks
+  prompt="Generate AGENTS.md for: src/hooks
     - Reason: high complexity
     - 30-80 lines max
     - NEVER repeat parent content
     - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
-    - Write directly to src/hooks/CLAUDE.md"
+    - Write directly to src/hooks/AGENTS.md"
 )
 
 Task(
-  description="CLAUDE.md for src/api",
+  description="AGENTS.md for src/api",
   subagent_type="general",
-  prompt="Generate CLAUDE.md for: src/api
+  prompt="Generate AGENTS.md for: src/api
     - Reason: distinct domain
     - 30-80 lines max
     - NEVER repeat parent content
     - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
-    - Write directly to src/api/CLAUDE.md"
+    - Write directly to src/api/AGENTS.md"
 )
-// ... one Task per CLAUDE_LOCATIONS entry
+// ... one Task per AGENTS_LOCATIONS entry
 ```
 
 **Results return directly. Mark "generate" as completed.**
@@ -332,13 +318,27 @@ Task(
 **Mark "review" as in_progress.**
 
 For each generated file:
-
 - Remove generic advice
 - Remove parent duplicates
 - Trim to size limits
 - Verify telegraphic style
 
 **Mark "review" as completed.**
+
+---
+
+## Phase 5: CLAUDE.md symlinks
+
+**Mark "symlinks" as in_progress** after review completes.
+
+**Goal:** In every directory where this workflow maintains `AGENTS.md` as the canonical knowledge file, `CLAUDE.md` must be a **relative symlink** to `AGENTS.md` (same content for Cursor rules vs Claude; single source of truth).
+
+1. **Discover targets** — `find` all `AGENTS.md` under the repo (exclude `node_modules`, `.git`, vendored trees). For each `…/AGENTS.md`, the sibling `…/CLAUDE.md` should be `-> AGENTS.md`.
+2. **Skip intentional exceptions** — If `CLAUDE.md` must differ from `AGENTS.md` (rare), leave as a regular file and note in the final report.
+3. **Replace** — In each target directory: remove any existing `CLAUDE.md` file, then `ln -sf AGENTS.md CLAUDE.md`. Use **`/bin/rm -f CLAUDE.md`** (or `command rm`) if the shell aliases `rm` to something that breaks on symlinks (e.g. rimraf).
+4. **Verify** — `ls -la …/CLAUDE.md` shows `-> AGENTS.md`; `git` stores mode `120000` for symlinks.
+
+**Mark "symlinks" as completed.**
 
 ---
 
@@ -350,16 +350,20 @@ For each generated file:
 Mode: {update | create-new}
 
 Files:
-  ✓ ./CLAUDE.md (root, {N} lines)
-  ✓ ./src/hooks/CLAUDE.md ({N} lines)
+  ✓ ./AGENTS.md (root, {N} lines)
+  ✓ ./src/hooks/AGENTS.md ({N} lines)
+
+Symlinks:
+  ✓ ./CLAUDE.md -> AGENTS.md
+  ✓ ./src/hooks/CLAUDE.md -> AGENTS.md
 
 Dirs Analyzed: {N}
-CLAUDE.md Created: {N}
-CLAUDE.md Updated: {N}
+AGENTS.md Created: {N}
+AGENTS.md Updated: {N}
 
 Hierarchy:
-  ./CLAUDE.md
-  └── src/hooks/CLAUDE.md
+  ./AGENTS.md
+  └── src/hooks/AGENTS.md
 ```
 
 ---
@@ -369,8 +373,8 @@ Hierarchy:
 - **Static agent count**: MUST vary agents based on project size/depth
 - **Sequential execution**: MUST parallel (multiple Task calls in one message)
 - **Ignoring existing**: ALWAYS read existing first, even with --create-new
-- **Over-documenting**: Not every dir needs CLAUDE.md
+- **Over-documenting**: Not every dir needs AGENTS.md
 - **Redundancy**: Child never repeats parent
 - **Generic content**: Remove anything that applies to ALL projects
 - **Verbose style**: Telegraphic or die
-
+- **Duplicate CLAUDE.md**: After generating AGENTS.md, do not leave a copied `CLAUDE.md` — symlink or editors drift apart
